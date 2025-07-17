@@ -1,7 +1,7 @@
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Integration } from '@api/types/wa.types';
-import { ConfigService, Language, Openai as OpenaiConfig } from '@config/env.config';
+import { ConfigService } from '@config/env.config';
 import { IntegrationSession, OpenaiBot, OpenaiSetting } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
@@ -639,26 +639,6 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
    * Implementation of speech-to-text transcription for audio messages
    */
   public async speechToText(msg: any, instance: any): Promise<string | null> {
-    const settings = await this.prismaRepository.openaiSetting.findFirst({
-      where: {
-        instanceId: instance.instanceId,
-      },
-    });
-
-    if (!settings) {
-      this.logger.error(`OpenAI settings not found. InstanceId: ${instance.instanceId}`);
-      return null;
-    }
-
-    const creds = await this.prismaRepository.openaiCreds.findUnique({
-      where: { id: settings.openaiCredsId },
-    });
-
-    if (!creds) {
-      this.logger.error(`OpenAI credentials not found. CredsId: ${settings.openaiCredsId}`);
-      return null;
-    }
-
     let audio: Buffer;
 
     if (msg.message.mediaUrl) {
@@ -668,7 +648,6 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
     } else if (msg.message.base64) {
       audio = Buffer.from(msg.message.base64, 'base64');
     } else {
-      // Fallback for raw WhatsApp audio messages that need downloadMediaMessage
       audio = await downloadMediaMessage(
         { key: msg.key, message: msg?.message },
         'buffer',
@@ -680,24 +659,19 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
       );
     }
 
-    const lang = this.configService.get<Language>('LANGUAGE').includes('pt')
-      ? 'pt'
-      : this.configService.get<Language>('LANGUAGE');
-
     const formData = new FormData();
     formData.append('file', audio, 'audio.ogg');
-    formData.append('model', 'whisper-1');
-    formData.append('language', lang);
 
-    const apiKey = creds?.apiKey || this.configService.get<OpenaiConfig>('OPENAI').API_KEY_GLOBAL;
-
-    const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        Authorization: `Bearer ${apiKey}`,
+    const response = await axios.post(
+      process.env.TRANSCRIBER_API_URL || 'http://192.168.3.130:5000/transcrever',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       },
-    });
+    );
 
-    return response?.data?.text;
+    return response?.data?.transcricao;
   }
 }

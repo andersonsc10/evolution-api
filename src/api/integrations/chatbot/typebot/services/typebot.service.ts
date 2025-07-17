@@ -662,7 +662,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
           try {
             const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
             let urlTypebot: string;
-            let reqData: {};
+            let reqData: { message?: string; sessionId?: string } = {};
             if (version === 'latest') {
               urlTypebot = `${url}/api/v1/sessions/${data?.sessionId}/continueChat`;
               reqData = {
@@ -674,6 +674,18 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
                 message: content,
                 sessionId: data?.sessionId,
               };
+            }
+
+            if (this.isAudioMessage(content) && msg) {
+              try {
+                this.logger.debug(`[TypeBot] Downloading audio for Whisper transcription`);
+                const transcription = await this.openaiService.speechToText(msg, instance);
+                if (transcription) {
+                  reqData.message = `[audio] ${transcription}`;
+                }
+              } catch (err) {
+                this.logger.error(`[TypeBot] Failed to transcribe audio: ${err}`);
+              }
             }
 
             const request = await axios.post(urlTypebot, reqData);
@@ -813,7 +825,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
         try {
           const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
           let urlTypebot: string;
-          let reqData: {};
+          let reqData: { message?: string; sessionId?: string } = {};
           if (version === 'latest') {
             urlTypebot = `${url}/api/v1/sessions/${data?.sessionId}/continueChat`;
             reqData = {
@@ -825,6 +837,18 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
               message: content,
               sessionId: data?.sessionId,
             };
+          }
+
+          if (this.isAudioMessage(content) && msg) {
+            try {
+              this.logger.debug(`[TypeBot] Downloading audio for Whisper transcription`);
+              const transcription = await this.openaiService.speechToText(msg, instance);
+              if (transcription) {
+                reqData.message = `[audio] ${transcription}`;
+              }
+            } catch (err) {
+              this.logger.error(`[TypeBot] Failed to transcribe audio: ${err}`);
+            }
           }
           request = await axios.post(urlTypebot, reqData);
 
