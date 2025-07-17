@@ -186,7 +186,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
       messages,
       input,
       clientSideActions,
-      this.applyFormatting,
+      this.applyFormatting.bind(this),
       this.prismaRepository,
     ).catch((err) => {
       console.error('Erro ao processar mensagens:', err);
@@ -678,7 +678,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
 
             if (this.isAudioMessage(content) && msg) {
               try {
-                this.logger.debug(`[TypeBot] Downloading audio for Whisper transcription`);
+                this.logger.debug(`[TypeBot] Downloading audio for transcription`);
                 const transcription = await this.openaiService.speechToText(msg, instance);
                 if (transcription) {
                   reqData.message = `[audio] ${transcription}`;
@@ -841,7 +841,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
 
           if (this.isAudioMessage(content) && msg) {
             try {
-              this.logger.debug(`[TypeBot] Downloading audio for Whisper transcription`);
+              this.logger.debug(`[TypeBot] Downloading audio for transcription`);
               const transcription = await this.openaiService.speechToText(msg, instance);
               if (transcription) {
                 reqData.message = `[audio] ${transcription}`;
@@ -945,7 +945,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
     // Handle audio transcription if OpenAI service is available
     if (this.isAudioMessage(content) && msg) {
       try {
-        this.logger.debug(`[TypeBot] Downloading audio for Whisper transcription`);
+        this.logger.debug(`[TypeBot] Downloading audio for transcription`);
         const transcription = await this.openaiService.speechToText(msg, instance);
         if (transcription) {
           reqData.message = `[audio] ${transcription}`;
